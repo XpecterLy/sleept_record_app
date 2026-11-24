@@ -12,6 +12,8 @@
       "supportsTablet": false
     },
     "android": {
+      "package": "com.xpecterly.noctua",
+      "versionCode": 1,
       "adaptiveIcon": {
         "backgroundColor": "#0A0E1C",
         "foregroundImage": "./assets/images/android-icon-foreground.png",

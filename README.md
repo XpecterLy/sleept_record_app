@@ -1,56 +1,101 @@
-# Welcome to your Expo app 👋
+# Noctua 🦉
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Noctua es una app móvil para registrar y analizar tu sueño. Mientras duermes, escucha por el micrófono, detecta ronquidos y posibles pausas respiratorias, y por la mañana te muestra un informe de la noche con recomendaciones basadas en evidencia científica.
 
-## Get started
+> ⚠️ Noctua es una herramienta de orientación y **no es un dispositivo médico**. Una "posible pausa" es solo una señal de cribado, no un diagnóstico de apnea (eso requiere una polisomnografía).
 
-1. Install dependencies
+## Funcionalidades
 
-   ```bash
-   npm install
-   ```
+- **Sesión nocturna**: graba audio mono de baja tasa de bits (unos 14 MB por hora) y analiza el nivel del micrófono en tiempo real, también con la pantalla apagada.
+- **Detector de ronquidos**: estima el ruido de fondo de forma adaptativa, filtra eventos según su duración y exige el ritmo de la respiración para clasificar un sonido como ronquido. Agrupa los ronquidos en episodios y marca posibles pausas ([src/lib/analysis/detector.ts](src/lib/analysis/detector.ts)).
+- **Informe matutino**: una encuesta breve, la línea de tiempo de la noche y la reproducción de cada episodio.
+- **Historial e insights**: tendencias entre noches y efecto de los factores previos al sueño (alcohol, cafeína, cena tardía, etc.).
+- **Perfil de salud**: IMC, cuello y antecedentes, cronotipo y hora ideal para acostarse.
+- **Tests**: cuestionarios validados, como la escala de somnolencia de Epworth.
+- **Fiabilidad**: puedes revisar episodios para medir la precisión del detector en tu dormitorio.
+- **Aprende**: artículos sobre el ronquido, la apnea, las fases del sueño, el cronotipo y la higiene del sueño.
+- **Privacidad**: todo se queda en el teléfono. No hay cuentas, servidores ni analítica. El audio y los datos se guardan en el almacenamiento local de la app.
 
-2. Start the app
+## Stack
 
-   ```bash
-   npx expo start
-   ```
+- [Expo](https://expo.dev) SDK 58 · React Native 0.88 · React 19 · TypeScript
+- [Expo Router](https://docs.expo.dev/router/introduction/) (rutas basadas en archivos dentro de `src/app/`)
+- `expo-audio` (grabación en segundo plano con medición del nivel), `expo-file-system`, `expo-battery`, `expo-keep-awake`
+- `react-native-svg` para los gráficos y Reanimated para las animaciones
 
-In the output, you'll find options to open the app in a
+## Estructura
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **src/app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
-
-```bash
-npm run reset-project
+```
+src/
+  app/            Pantallas (Expo Router)
+    (tabs)/       Inicio, Historial, Insights, Perfil
+    night/[id]    Detalle de una noche
+    morning/[id]  Encuesta matutina
+    learn/[slug]  Artículos
+    test/[kind]   Cuestionarios
+    session.tsx   Sesión de grabación en curso
+  components/     UI reutilizable (ui, form, charts, tabs)
+  constants/      Tema (colores y espaciado)
+  content/        Contenido de los artículos
+  hooks/          Hooks compartidos
+  lib/            Lógica: detector, sesión, almacenamiento, ciencia, recomendaciones
+tests/            Tests unitarios (node:test)
 ```
 
-This command will move the starter code to the **example** directory and create a blank **src/app** directory where you can start developing.
+## Desarrollo
 
-### Other setup steps
+Requisitos: Node.js 20 o superior y npm.
 
-- To set up ESLint for linting, run `npx expo lint`, or follow our guide on ["Using ESLint and Prettier"](https://docs.expo.dev/guides/using-eslint/)
-- If you'd like to set up unit testing, follow our guide on ["Unit Testing with Jest"](https://docs.expo.dev/develop/unit-testing/)
-- Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
+```bash
+npm install
+npx expo start
+```
 
-## Learn more
+La app usa grabación en segundo plano y módulos nativos, así que en Android y iOS necesitas un **development build**. Expo Go no basta:
 
-To learn more about developing your project with Expo, look at the following resources:
+```bash
+npx expo run:android      # build local (requiere Android Studio)
+# o en la nube:
+npx eas-cli@latest build --profile preview --platform android   # APK instalable
+```
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+### Calidad
 
-## Join the community
+```bash
+npm run typecheck   # tsc --noEmit
+npm run lint        # expo lint
+npm test            # tests del detector y del cálculo de batería
+```
 
-Join our community of developers creating universal apps.
+## Publicar en Google Play
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+La configuración de EAS está en [eas.json](eas.json):
+
+| Perfil       | Uso                                                  |
+| ------------ | ---------------------------------------------------- |
+| `preview`    | APK para instalar directamente y probar              |
+| `production` | AAB para Play Store, con `versionCode` autoincremental |
+
+```bash
+npx eas-cli@latest login
+npx eas-cli@latest build --platform android --profile production
+npx eas-cli@latest submit --platform android --profile production
+```
+
+El envío sube la build al track **internal** como borrador. Después la promocionas a producción desde Play Console.
+
+**Una sola vez, antes del primer envío:**
+
+1. Crea una cuenta de [Google Play Console](https://play.google.com/console) (pago único de 25 USD) y crea la app.
+2. Crea una [cuenta de servicio de Google](https://expo.fyi/creating-google-service-account) y súbela con `npx eas-cli@latest credentials --platform android`. **No subas el JSON de la clave al repositorio.**
+3. Completa la ficha de Play Console:
+   - **Política de privacidad**: es obligatoria porque la app usa el micrófono.
+   - **Seguridad de los datos**: indica que el audio y los datos de salud se procesan y se guardan solo en el dispositivo.
+   - **Declaración de servicio en primer plano** (tipo `microphone`): explica que se usa para grabar y analizar el sueño durante la noche, y adjunta un video corto que lo muestre.
+   - Clasificación de contenido, público objetivo, capturas de pantalla e icono de 512×512.
+
+El identificador de la app en Android es `com.xpecterly.noctua` (`android.package` en [app.json](app.json)). **No se puede cambiar después de la primera publicación.**
+
+## Licencia
+
+MIT. Consulta [LICENSE](LICENSE).
